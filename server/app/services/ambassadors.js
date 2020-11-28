@@ -172,6 +172,7 @@ async function unclaimTriplers(req) {
  *
  */
 async function socialMatchTripler(req) {
+  let similarity_metric = !!req.body.similarity_metric ? req.body.similarity_metric : 0
   let ambassador = req.user
   let query = `MATCH (a:Ambassador {id:$a_id}), (t:Tripler {id:$t_id})
       MERGE (a)-[:HAS_SOCIAL_MATCH]->(s:SocialMatch)-[:HAS_SOCIAL_MATCH]->(t)
@@ -179,7 +180,7 @@ async function socialMatchTripler(req) {
   let params = {
     a_id: ambassador.get('id'),
     t_id: req.body.tripler,
-    similarity_metric: req.body.similarity_metric,
+    similarity_metric: similarity_metric,
   }
 
   let result = await req.neode.cypher(query, params)
