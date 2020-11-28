@@ -5,6 +5,9 @@
     "type": "patreon",
     "url": "https://www.patreon.com/hellovoter"
   },
+  "pre-commit": [
+    "pretty-quick"
+  ],
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -17,13 +20,15 @@
     "ncu": "ncu && cd client && ncu && cd ../server && ncu",
     "client": "cd client && npm install && npm start",
     "server": "cd server && npm install && npm start",
-    "start": "npm run server"
+    "start": "npm run server",
+    "pretty-quick": "pretty-quick --staged"
   },
   "keywords": [],
   "author": "Our Voice USA",
   "license": "AGPL-3.0",
   "devDependencies": {
     "concurrently": "^5.1.0",
+    "pre-commit": "^1.2.2",
     "prettier": "^2.2.0",
     "pretty-quick": "^3.1.0"
   }

@@ -37,23 +37,6 @@ module.exports = {
     type: 'point',
     required: true,
   },
-  // This Neo4J relationship says that this Ambassador has "claimed" this Tripler.
-  // The Ambassador is expected to send the SMS to the Tripler asking to confirm.
-  // When one Ambassador claims a Tripler, that Tripler is not to be claimed by
-  //   any other Ambassador.
-  claims: {
-    type: 'relationships',
-    relationship: 'CLAIMS',
-    direction: 'out',
-    target: 'Tripler',
-    properties: {
-      since: {
-        type: 'localdatetime',
-        default: () => new Date(),
-      },
-    },
-    eager: true,
-  },
   signup_completed: {
     type: 'boolean',
     default: false,
@@ -97,6 +80,28 @@ module.exports = {
   has_w9: {
     type: 'boolean',
     default: false,
+  },
+  // This contains the stringified JSON response from Twilio and Ekata's caller ID services
+  verification: 'string',
+  // This contains the stringified JSON response from Twilio on the carrier data for this
+  //   Ambassador's phone number
+  carrier_info: 'string',
+  // This Neo4J relationship says that this Ambassador has "claimed" this Tripler.
+  // The Ambassador is expected to send the SMS to the Tripler asking to confirm.
+  // When one Ambassador claims a Tripler, that Tripler is not to be claimed by
+  //   any other Ambassador.
+  claims: {
+    type: 'relationships',
+    relationship: 'CLAIMS',
+    direction: 'out',
+    target: 'Tripler',
+    properties: {
+      since: {
+        type: 'localdatetime',
+        default: () => new Date(),
+      },
+    },
+    eager: true,
   },
   gets_paid: {
     type: 'relationships',
@@ -161,9 +166,4 @@ module.exports = {
     },
     eager: true,
   },
-  // This contains the stringified JSON response from Twilio and Ekata's caller ID services
-  verification: 'string',
-  // This contains the stringified JSON response from Twilio on the carrier data for this
-  //   Ambassador's phone number
-  carrier_info: 'string',
 }
