@@ -475,6 +475,22 @@ async function unclaimTriplers(req, res) {
 
 /*
  *
+ * socialMatchTripler(req, res)
+ *
+ * Just calls the socialMatchTripler service function, MERGES the SocialMatch path between the ambassador and tripler
+ */
+async function socialMatchTripler(req, res) {
+  if (!req.body.tripler) {
+    return error(400, res, 'Invalid request, no tripler')
+  }
+
+  await ambassadorsSvc.socialMatchTripler(req)
+
+  return _204(res)
+}
+
+/*
+ *
  * completeOnboarding(req, res)
  *
  * This function is obsolete. It was used when Ambassadors were vetted, and admins needed to approve Ambassadors.
@@ -620,6 +636,10 @@ module.exports = Router({mergeParams: true})
   .put('/ambassadors/current/triplers', (req, res) => {
     if (!req.authenticated) return _401(res, 'Permission denied.')
     return claimTriplers(req, res)
+  })
+  .put('/ambassadors/current/socialmatch', (req, res) => {
+    if (!req.authenticated) return _401(res, 'Permission denied.')
+    return socialMatchTripler(req, res)
   })
   .delete('/ambassadors/current/triplers', (req, res) => {
     if (!req.authenticated) return _401(res, 'Permission denied.')
