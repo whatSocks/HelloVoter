@@ -7,7 +7,7 @@ module.exports = {
   // This is the BlockPower internal ID
   id: {
     type: 'uuid',
-    primary: true
+    primary: true,
   },
   // This attribute contains the VoterID as imported from the voter data CSV
   voter_id: {
@@ -15,7 +15,7 @@ module.exports = {
   },
   first_name: {
     type: 'string',
-    required: true
+    required: true,
   },
   last_name: 'string',
   date_of_birth: 'string',
@@ -34,40 +34,23 @@ module.exports = {
   //   sent on a schedule as determined by the appropriate .env vars and /backgrounds/upgrade_sms.js
   upgrade_sms_sent: {
     type: 'boolean',
-    default: false
+    default: false,
   },
   address: {
     type: 'string',
-    required: true
+    required: true,
   },
   // This is the lat/lon data as imported from the voter data CSV
   location: {
     type: 'point',
-    required: true
+    required: true,
   },
   // This is the stringified JSON object sent by the Ambassador when initiating the Tripler
   //   confirmation process.
   triplees: 'string',
   created_at: {
     type: 'localdatetime',
-    default: () => new Date,
-  },
-  // This is unused. It was intended to be a part of a 'social distance' metric wherein
-  //   social distance data was imported into the system to help the now-defunct 'suggest-tripler'
-  //   function return Tripler results that the Ambassador was likely to know. This would work
-  //   if a Tripler upgraded to an Ambassador, or if someone signed up as an Ambassador and matched
-  //   the data of a Tripler in the system. This work was almost, but not quite, completed.
-  knows: {
-    type: 'relationships',
-    relationship: 'KNOWS',
-    target: 'Tripler',
-    properties: {
-      distance: {
-        type: 'float'
-      }
-    },
-    eager: true,
-    cascade: 'detach'
+    default: () => new Date(),
   },
   // This simply points back to the Ambassador that has a "claims" relationship with this Tripler
   claimed: {
@@ -76,7 +59,7 @@ module.exports = {
     relationship: 'CLAIMS',
     direction: 'in',
     eager: true,
-    cascade: 'detach'
+    cascade: 'detach',
   },
   // This simply points back to the Ambassador that this Tripler now is
   is_ambassador: {
@@ -84,13 +67,13 @@ module.exports = {
     target: 'Ambassador',
     relationship: 'WAS_ONCE',
     eager: true,
-    cascade: 'detach'
+    cascade: 'detach',
   },
   // This indicates that the Tripler is now an Ambassador, and that Ambassador
   //   has already confirmed at least 1 Tripler themselves.
   is_ambassador_and_has_confirmed: {
     type: 'boolean',
-    default: false
+    default: false,
   },
   // This holds the stringified JSON as returned by Twilio and Ekata's caller ID lookup service
   verification: 'string',
@@ -108,5 +91,14 @@ module.exports = {
   //   for example, 'GA Atlanta' would indicate this Tripler lives in the Atlanta metro region
   msa: 'string',
   birthdate_mm_yy: 'string',
-  zip: 'string'
-};
+  zip: 'string',
+
+  // Relationships
+  has_social_match_to: {
+    type: 'relationships',
+    relationship: 'HAS_SOCIAL_MATCH',
+    direction: 'out',
+    target: 'SocialMatch',
+    eager: true,
+  },
+}

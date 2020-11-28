@@ -166,4 +166,11 @@ module.exports = {
     },
     eager: true,
   },
+  has_social_match_to: {
+    type: 'relationships',
+    relationship: 'HAS_SOCIAL_MATCH',
+    direction: 'out',
+    target: 'SocialMatch',
+    eager: true,
+  },
 }
