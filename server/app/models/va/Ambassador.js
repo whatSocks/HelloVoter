@@ -37,6 +37,55 @@ module.exports = {
     type: "point",
     required: true,
   },
+  signup_completed: {
+    type: "boolean",
+    default: false,
+  },
+  // This is obsolete. It was used when "onboarding" an Ambassador was done.
+  onboarding_completed: {
+    type: "boolean",
+    default: false,
+  },
+  // If approved (automatically set to true on signup) the Ambassador is able
+  //   to perform all Ambassador functions. If disapproved (by way of the admin panel)
+  //   then that Ambassador is not able to perform most functions.
+  approved: {
+    type: "boolean",
+    default: false,
+  },
+  // This is obsolete. It was used when "onboarding" an Ambassador was done.
+  quiz_results: "string",
+  created_at: {
+    type: "localdatetime",
+    default: () => new Date(),
+  },
+  // This is a carry-over from the HelloVoter "Volunteer" model. It was used there
+  //   to prevent an account from logging in. It is similarly used in the same way
+  //   for BlockPower. NOTE: If approved:true, then locked:false must be true. If
+  //   approved:false then locked:true must be true. This should be assured in the
+  //   approval/disapproval ambassador admin functions.
+  locked: {
+    type: "boolean",
+    default: false,
+  },
+  // This is obsolete. It was used prior to separate Account models being implemented.
+  payout_provider: "string",
+  // Determines if the user is an Admin or not.
+  admin: {
+    type: "boolean",
+    default: false,
+  },
+  // This relationship connects an Ambassador to a Payout. An Ambassador can have many
+  //   Payouts. NOTE the tripler_id property of this relationship.
+  has_w9: {
+    type: "boolean",
+    default: false,
+  },
+  // This contains the stringified JSON response from Twilio and Ekata's caller ID services
+  verification: "string",
+  // This contains the stringified JSON response from Twilio on the carrier data for this
+  //   Ambassador's phone number
+  carrier_info: "string",
   // This Neo4J relationship says that this Ambassador has "claimed" this Tripler.
   // The Ambassador is expected to send the SMS to the Tripler asking to confirm.
   // When one Ambassador claims a Tripler, that Tripler is not to be claimed by
@@ -54,51 +103,6 @@ module.exports = {
     },
     eager: true,
   },
-  signup_completed: {  // Has this voter completed the signup form?
-    type: "boolean",
-    default: false,
-  },
-  approved: {  // Has this voter passed Alloy checks?
-    type: "boolean",
-    default: false,
-  },
-  quiz_completed: {  // Has this voter completed the WordPress quiz?
-    type: "boolean",
-    default: false,
-  },
-  onboarding_completed: {  // Has this voter completed all onboarding steps?
-    type: "boolean",
-    default: false,
-  },
-  giftcard_completed: {  // Have we sent this voter a gift card for finishing onboarding?
-    type: "boolean",
-    default: false,
-  },
-  created_at: {
-    type: "localdatetime",
-    default: () => new Date(),
-  },
-  locked: {  // Has this voter been flagged for fraud?
-    type: "boolean",
-    default: false,
-  },
-  admin: {  // Does this voter have admin privileges?
-    type: "boolean",
-    default: false,
-  },
-  has_w9: {
-    type: "boolean",
-    default: false,
-  },
-  paypal_approved: {  // Is this voter allowed to set up payouts via PayPal?
-    type: "boolean",
-    default: false,
-  },
-  payout_provider: {  // "stripe" or "paypal"
-    type: "string",
-  },
-  // This relationship connects an Ambassador to a Payout. An Ambassador can have many
-  //   Payouts. NOTE the tripler_id property of this relationship.
   gets_paid: {
     type: "relationships",
     relationship: "GETS_PAID",
@@ -162,14 +166,11 @@ module.exports = {
     },
     eager: true,
   },
-  // This contains the stringified JSON response from Twilio and Ekata's caller ID services
-  verification: "string",
-  // This contains the stringified JSON response from Twilio on the carrier data for this
-  //   Ambassador's phone number
-  carrier_info: "string",
-
-  alloy_person_id: {
-    type: "integer",
-    default: null,
+  has_social_match_to: {
+    type: "relationships",
+    relationship: "HAS_SOCIAL_MATCH",
+    direction: "out",
+    target: "SocialMatch",
+    eager: true,
   },
 }

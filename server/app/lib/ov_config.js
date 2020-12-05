@@ -136,8 +136,4 @@ export const ov_config = {
   upgrade_sms_cron_string: getConfig("upgrade_sms_cron_string", false, "*/60 * * * *"),
   twilio_msg_svc_sid: getConfig("twilio_msg_svc_sid", false, null),
   neo4j_encryption: getConfig("neo4j_encryption", false, "ON"),
-  hubspot_api_key: getConfig("hubspot_api_key", false, ""),
-  // Alloy
-  alloy_key: getConfig("alloy_key", true, ""),
-  alloy_secret: getConfig("alloy_secret", true, ""),
 }

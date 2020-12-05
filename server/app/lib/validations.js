@@ -1,19 +1,19 @@
-import PhoneNumber from 'awesome-phonenumber';
-import EmailValidator from 'email-validator';
-import neode from '../lib/neode';
-import { ov_config } from './ov_config';
-import { normalizePhone } from './normalizers';
-import carrier from './carrier';
-import caller_id from './caller_id';
-import reverse_phone from './reverse_phone';
-import { ValidationError } from './errors';
+import PhoneNumber from "awesome-phonenumber"
+import EmailValidator from "email-validator"
+import neode from "../lib/neode"
+import {ov_config} from "./ov_config"
+import {normalizePhone} from "./normalizers"
+import carrier from "./carrier"
+import caller_id from "./caller_id"
+import reverse_phone from "./reverse_phone"
+import {ValidationError} from "./errors"
 
-const ENFORCE_UNIQUE = !ov_config.stress_testing;
+const ENFORCE_UNIQUE = !ov_config.stress_testing
 
 const ALLOWED_STATES = ov_config.allowed_states
   .toUpperCase()
-  .split(',')
-  .map((state) => state.trim());
+  .split(",")
+  .map((state) => state.trim())
 
 /*
  *
@@ -23,10 +23,10 @@ const ALLOWED_STATES = ov_config.allowed_states
  *
  */
 function _isEmpty(obj) {
-  if (!obj) return true;
-  if (typeof obj === 'object') return Object.keys(obj).length === 0;
-  if (typeof obj === 'string') return !(obj.trim());
-  return false;
+  if (!obj) return true
+  if (typeof obj === "object") return Object.keys(obj).length === 0
+  if (typeof obj === "string") return !obj.trim()
+  return false
 }
 
 /*
@@ -37,11 +37,11 @@ function _isEmpty(obj) {
  *
  */
 export function validateEmpty(obj, keys) {
-  if (_isEmpty(obj)) return false;
+  if (_isEmpty(obj)) return false
   for (var i = 0; i < keys.length; i++) {
-    if (_isEmpty(obj[keys[i]])) return false;
+    if (_isEmpty(obj[keys[i]])) return false
   }
-  return true;
+  return true
 }
 
 /*
@@ -53,7 +53,7 @@ export function validateEmpty(obj, keys) {
  *
  */
 export function validatePhone(phone) {
-  return (new PhoneNumber(phone, 'US')).isValid();
+  return new PhoneNumber(phone, "US").isValid()
 }
 
 /*
@@ -65,7 +65,7 @@ export function validatePhone(phone) {
  *
  */
 export function validateEmail(email) {
-  return EmailValidator.validate(email || "");
+  return EmailValidator.validate(email || "")
 }
 
 /*
@@ -76,7 +76,7 @@ export function validateEmail(email) {
  *
  */
 export async function validateUniquePhone(modelName, phone, existingId = null) {
-  return validateUnique(modelName, { phone: normalizePhone(phone) }, existingId);
+  return validateUnique(modelName, {phone: normalizePhone(phone)}, existingId)
 }
 
 /**
@@ -85,13 +85,13 @@ export async function validateUniquePhone(modelName, phone, existingId = null) {
  */
 export async function validateUnique(modelName, properties, existingId = null) {
   if (!ENFORCE_UNIQUE) {
-    return true;
+    return true
   }
-  const all = await neode.all(modelName, properties);
-  if (all.length === 0) return true;
-  if (all.length > 1) return false;
+  const all = await neode.all(modelName, properties)
+  if (all.length === 0) return true
+  if (all.length > 1) return false
   // Exactly one match, return false unless it's existingId.
-  return all.first().get('id') === existingId;
+  return all.first().get("id") === existingId
 }
 
 /*
@@ -103,7 +103,7 @@ export async function validateUnique(modelName, properties, existingId = null) {
  *
  */
 export function validateState(state) {
-  return ALLOWED_STATES.indexOf(state) >= 0;
+  return ALLOWED_STATES.indexOf(state) >= 0
 }
 
 /*
@@ -116,62 +116,67 @@ export function validateState(state) {
  *
  */
 export async function validateCarrier(phone) {
-  return await carrier(normalizePhone(phone));
+  return await carrier(normalizePhone(phone))
 }
 
 /** Check against Twilio caller ID and Ekata data. */
 export async function verifyCallerIdAndReversePhone(phone) {
-  const verifications = [];
+  const verifications = []
 
-  let twilioCallerId = await caller_id(phone);
+  let twilioCallerId = await caller_id(phone)
   if (twilioCallerId) {
     try {
       verifications.push({
-        source: 'Twilio',
-        name: twilioCallerId
+        source: "Twilio",
+        name: twilioCallerId,
       })
     } catch (err) {
-      console.log("Could not get verification info for ambassador: %s", err);
+      console.log("Could not get verification info for ambassador: %s", err)
     }
   }
 
-  let ekataReversePhone = await reverse_phone(phone);
+  let ekataReversePhone = await reverse_phone(phone)
   if (ekataReversePhone) {
     try {
       verifications.push({
-        source: 'Ekata',
-        name: ekataReversePhone.addOns.results.ekata_reverse_phone
+        source: "Ekata",
+        name: ekataReversePhone.addOns.results.ekata_reverse_phone,
       })
     } catch (err) {
-      console.log("Could not get verification info for ambassador: %s", err);
+      console.log("Could not get verification info for ambassador: %s", err)
     }
   }
 
-  return verifications;
+  return verifications
 }
 
 /** Throws if phone or email is invalid or duplicate. */
-export async function assertUserPhoneAndEmail(modelName, phone, email, id = null, requireEmail = false) {
+export async function assertUserPhoneAndEmail(modelName, phone, email, id = null) {
   if (phone) {
     if (!validatePhone(phone)) {
-      throw new ValidationError("Our system doesn't understand that phone number. Please try again.");
+      throw new ValidationError(
+        "Our system doesn't understand that phone number. Please try again.",
+      )
     }
 
-    if (!await validateUniquePhone(modelName, phone, id)) {
-      throw new ValidationError(`That ${modelName} phone number is already in use. Email support@blockpower.vote for help. (E5)`);
+    if (!(await validateUniquePhone(modelName, phone, id))) {
+      throw new ValidationError(
+        `That ${modelName} phone number is already in use. Email support@blockpower.vote for help. (E5)`,
+      )
     }
   }
 
-  if (email || requireEmail) {
+  if (email) {
     if (!validateEmail(email)) {
-      throw new ValidationError('Our records suggest that this email address may not be valid. ' +
-        'Email support@blockpower.vote for help. (E7)');
+      throw new ValidationError("Invalid email. Please try again.")
     }
 
-    if (!await validateUnique(modelName, { email }, id)) {
-      throw new ValidationError(`That ${modelName} email address is already in use. Email support@blockpower.vote for help. (E6)`);
+    if (!(await validateUnique(modelName, {email}, id))) {
+      throw new ValidationError(
+        `That ${modelName} email address is already in use. Email support@blockpower.vote for help. (E6)`,
+      )
     }
   }
 
-  return true;
+  return true
 }

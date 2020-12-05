@@ -1,10 +1,7 @@
 import {v4 as uuidv4} from "uuid"
 import stringFormat from "string-format"
-import {verifyAlloy} from "../lib/alloy"
 import neode from "../lib/neode"
-
 import {validateEmpty, validateUnique, assertUserPhoneAndEmail} from "../lib/validations"
-
 import {ValidationError} from "../lib/errors"
 import {trimFields} from "../lib/utils"
 import {getValidCoordinates, normalizePhone} from "../lib/normalizers"
@@ -53,7 +50,7 @@ async function signup(json, verification, carrierLookup) {
     throw new ValidationError("Invalid payload, ambassador cannot be created")
   }
 
-  await assertUserPhoneAndEmail("Ambassador", json.phone, json.email, null, true)
+  await assertUserPhoneAndEmail("Ambassador", json.phone, json.email)
 
   if (!(await validateUnique("Ambassador", {external_id: json.externalId}))) {
     throw new ValidationError(
@@ -62,37 +59,6 @@ async function signup(json, verification, carrierLookup) {
   }
 
   const [coordinates, address] = await getValidCoordinates(json.address)
-
-  const DOB = json.date_of_birth.split("/")
-  let date_of_birth_month = DOB[0]
-  let date_of_birth_day = DOB[1]
-  const date_of_birth_year = DOB[2]
-
-  if (date_of_birth_day.length === 1) {
-    date_of_birth_day = "0" + date_of_birth_day
-  }
-
-  if (date_of_birth_month.length === 1) {
-    date_of_birth_month = "0" + date_of_birth_month
-  }
-
-  const birth_date = date_of_birth_year + "-" + date_of_birth_month + "-" + date_of_birth_day
-  const alloy_response = await verifyAlloy(
-    json.first_name,
-    json.last_name,
-    json.address.address1,
-    json.address.city,
-    json.address.state,
-    json.address.zip,
-    birth_date,
-  )
-  let existing_ambassador = null
-
-  if (alloy_response) {
-    existing_ambassador = await neode.first("Ambassador", {
-      alloy_person_id: alloy_response.data.alloy_person_id,
-    })
-  }
 
   let new_ambassador = await neode.create("Ambassador", {
     id: uuidv4(),
@@ -103,8 +69,10 @@ async function signup(json, verification, carrierLookup) {
     date_of_birth: json.date_of_birth || null,
     address: JSON.stringify(address, null, 2),
     quiz_results: JSON.stringify(json.quiz_results, null, 2) || null,
+    approved: true,
+    locked: false,
     signup_completed: true,
-    approved:false,
+    onboarding_completed: true,
     location: {
       latitude: parseFloat(coordinates.latitude),
       longitude: parseFloat(coordinates.longitude),
@@ -114,26 +82,12 @@ async function signup(json, verification, carrierLookup) {
     carrier_info: JSON.stringify(carrierLookup, null, 2),
   })
 
-  if (existing_ambassador && !existing_ambassador.get("external_id")) {
-    // existing ambassador exists and does not have an external id
-    // delete it and copy over the approved and alloy_person_id
-    let alloy_person_id = existing_ambassador.get("alloy_person_id")
-    let approved = existing_ambassador.get("approved")
-    //copy all the relationships from one to the other
-    let query = `MATCH (old:Ambassador {alloy_person_id: $alloy_person_id})
-              MATCH (new:Ambassador {id: $new_ambassador})
-              OPTIONAL MATCH (old)-[out:HAS_SOCIAL_MATCH]->(s1:SocialMatch)
-              OPTIONAL MATCH (old)<-[in:HAS_SOCIAL_MATCH]-(s2:SocialMatch)
-              WITH new, old, collect(distinct s1) as outs, collect(distinct s2) as ins
-              FOREACH (x in outs | CREATE (new)-[:HAS_SOCIAL_MATCH]->(x))
-              FOREACH (y in ins | CREATE (new)<-[:HAS_SOCIAL_MATCH]-(y))`
+  let existing_tripler = await neode.first("Tripler", {
+    phone: normalizePhone(json.phone),
+  })
 
-    let status = await neode.cypher(query, {
-      alloy_person_id: existing_ambassador.get("alloy_person_id"),
-      new_ambassador: new_ambassador.get("id"),
-    })
-    existing_ambassador.delete()
-    new_ambassador.update({alloy_person_id: alloy_person_id, approved: approved})
+  if (existing_tripler) {
+    new_ambassador.relateTo(existing_tripler, "was_once")
   }
 
   // send email in the background
@@ -146,13 +100,6 @@ async function signup(json, verification, carrierLookup) {
     await mail(ov_config.admin_emails, null, null, subject, body)
   }, 100)
 
-  let existing_tripler = await neode.first("Tripler", {
-    phone: normalizePhone(json.phone),
-  })
-
-  if (existing_tripler) {
-    new_ambassador.relateTo(existing_tripler, "was_once")
-  }
   return new_ambassador
 }
 
@@ -217,10 +164,33 @@ async function unclaimTriplers(req) {
   }
 }
 
+/*
+ *
+ * socialMatchTripler(req)
+ *
+ * This function allows an Ambassador to create a SocialMatch between themselves and a single tripler
+ *
+ */
+async function socialMatchTripler(req) {
+  let similarity_metric = !!req.body.similarity_metric ? req.body.similarity_metric : 0
+  let ambassador = req.user
+  let query = `MATCH (a:Ambassador {id:$a_id}), (t:Tripler {id:$t_id})
+      MERGE (a)-[:HAS_SOCIAL_MATCH]->(s:SocialMatch)-[:HAS_SOCIAL_MATCH]->(t)
+      SET s.similarity_metric=$similarity_metric`
+  let params = {
+    a_id: ambassador.get("id"),
+    t_id: req.body.tripler,
+    similarity_metric: similarity_metric,
+  }
+
+  let result = await req.neode.cypher(query, params)
+}
+
 module.exports = {
   findByExternalId: findByExternalId,
   findById: findById,
   signup: signup,
   getPrimaryAccount: getPrimaryAccount,
   unclaimTriplers: unclaimTriplers,
+  socialMatchTripler: socialMatchTripler,
 }
