@@ -321,6 +321,9 @@ async function getPrimaryAccount(ambassador) {
     }
   }
 
+  //make sure account-related ambassador fields are updated in hs
+  syncAmbassadorToHubSpot(ambassador)
+
   return primaryAccount
 }
 
