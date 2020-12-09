@@ -301,6 +301,9 @@ async function sendTriplerCountsToHubspot(ambassador) {
  *
  */
 async function getPrimaryAccount(ambassador) {
+
+
+  await sendTriplerCountsToHubspot(ambassador)
   let relationships = ambassador.get("owns_account")
   let primaryAccount = null
 
