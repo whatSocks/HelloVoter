@@ -23,7 +23,12 @@ import {serializeAmbassadorForAdmin} from "../routes/api/v1/va/serializers"
  *
  */
 async function findByExternalId(externalId) {
-  return await neode.first("Ambassador", "external_id", externalId)
+
+  const ambassador = await neode.first("Ambassador", "external_id", externalId)
+  if(ambassador) {
+    syncAmbassadorToHubSpot(ambassador)
+  }
+  return ambassador
 }
 
 /*
@@ -322,7 +327,7 @@ async function getPrimaryAccount(ambassador) {
   }
 
   //make sure account-related ambassador fields are updated in hs
-  syncAmbassadorToHubSpot(ambassador)
+  // syncAmbassadorToHubSpot(ambassador)
 
   return primaryAccount
 }
