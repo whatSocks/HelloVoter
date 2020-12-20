@@ -550,6 +550,6 @@ module.exports = {
   initialSyncAmbassadorToHubSpot: initialSyncAmbassadorToHubSpot,
   sendTriplerCountsToHubspot: sendTriplerCountsToHubspot,
   syncAmbassadorToHubSpot: syncAmbassadorToHubSpot,
-  updateTrustFactors: updateTrustFactors
+  updateTrustFactors: updateTrustFactors,
   setEkataBasedSocialMatch:setEkataBasedSocialMatch,
 }
