@@ -49,6 +49,11 @@ export function normalizePhone(phone) {
   return internationalNumber(phone).replace(/[^0-9xX]/g, '')
 }
 
+/** Specifically for cypher matching. */
+export function normalizeName(name) {
+  return (name || "").trim().replace(/-'/g, "").toLowerCase()
+}
+
 /*
  *
  * getValidCoordinates(address)

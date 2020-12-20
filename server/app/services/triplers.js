@@ -3,7 +3,7 @@ import stringFormat from "string-format"
 import neo4j from "neo4j-driver"
 import neode from "../lib/neode"
 import {serializeName} from "../lib/utils"
-import {normalizeGender, normalizePhone} from "../lib/normalizers"
+import {normalizeGender, normalizePhone, normalizeName} from "../lib/normalizers"
 import mail from "../lib/mail"
 import {ov_config} from "../lib/ov_config"
 import sms from "../lib/sms"
@@ -307,11 +307,6 @@ async function upgradeNotification(triplerId) {
   }
 }
 
-/** Specifically for cypher matching. */
-function normalizeName(name) {
-  return (name || "").trim().replace(/-'/g, "").toLowerCase()
-}
-
 /**
  * Weight search params by roughly how significantly they narrow the search results.
  * Mainly used for performance reasons.
@@ -530,6 +525,7 @@ async function startTriplerConfirmation(ambassador, tripler, triplerPhone, tripl
   if (typeof verification[1] !== "undefined") {
     await setTriplerEkataLocations(tripler, verification)
     await setTriplerEkataAssociatedPeople(tripler, verification)
+    await ambassadorsSvc.setEkataBasedSocialMatch(ambassador, verification)
   }
 }
 
@@ -597,12 +593,15 @@ async function setTriplerEkataAssociatedPeople(tripler, verification) {
   match (t:Tripler {id:$t_id})
   merge (e:EkataPerson {id:$e_id})
   merge (t)-[r:EKATA_ASSOCIATED]->(e)
+  SET e += {first_name:$e_first, last_name:$e_last}
   `
 
     for (let i = 0; i < people.length; i++) {
       let params = {}
       params["t_id"] = tripler.get("id")
       params["e_id"] = people[i]["id"]
+      params["e_first"] = people[i]["firstname"]
+      params["e_last"] = people[i]["lastname"]
       await neode.cypher(query, params)
     }
   }

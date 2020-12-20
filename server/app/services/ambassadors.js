@@ -11,7 +11,7 @@ import {ValidationError} from "../lib/errors"
 import {isLocked} from "../lib/fraud"
 import {calcTripleeNameTrustFactors} from "../lib/triplee_checks"
 import {trimFields} from "../lib/utils"
-import {getValidCoordinates, normalizePhone} from "../lib/normalizers"
+import {getValidCoordinates, normalizePhone, normalizeName} from "../lib/normalizers"
 import mail from "../lib/mail"
 import {ov_config} from "../lib/ov_config"
 import {signupEmail} from "../emails/signupEmail"
@@ -170,6 +170,7 @@ async function signup(json, verification, carrierLookup) {
 
   if (typeof verification[1] !== "undefined") {
     setAmbassadorEkataAssociatedPeople(new_ambassador, verification)
+    setEkataBasedSocialMatch(new_ambassador,verification)
   }
 
   return new_ambassador
@@ -493,20 +494,51 @@ async function searchAmbassadors(req) {
 async function setAmbassadorEkataAssociatedPeople(ambassador, verification) {
   if (typeof verification[1] !== "undefined") {
     const people = verification[1]["name"]["result"]["associated_people"]
-    const query = `
-  match (a:Ambassador {id:$a_id})
-  merge (e:EkataPerson {id:$e_id})
-  merge (a)-[r:EKATA_ASSOCIATED]->(e)
-  `
 
-    for (let i = 0; i < people.length; i++) {
+    for (let i = 0; i < people.length; i++) {      
+      const query = `
+      match (a:Ambassador {id:$a_id})
+      merge (e:EkataPerson {id:$e_id})
+      merge (a)-[r:EKATA_ASSOCIATED]->(e)
+      SET e += {first_name:$e_first, last_name:$e_last}
+      `
+
       let params = {}
       params["a_id"] = ambassador.get("id")
       params["e_id"] = people[i]["id"]
+      params["e_first"] = people[i]["firstname"]
+      params["e_last"] = people[i]["lastname"]
       await neode.cypher(query, params)
     }
   }
 }
+
+async function setEkataBasedSocialMatch(ambassador, verification) {
+  if (typeof verification[1] !== "undefined") {
+    const people = verification[1]["name"]["result"]["associated_people"]
+
+    for (let i = 0; i < people.length; i++) {      
+      const query = `
+      match (a:Ambassador {id:$a_id})
+      with a, $e_first + " " + $e_last as ekataName
+      CALL db.index.fulltext.queryNodes("triplerFullNameIndex", ekataName) YIELD node
+      with a, node,apoc.text.levenshteinSimilarity(node.full_name, ekataName) as name_similarity
+      order by name_similarity desc
+      limit 50
+      merge (a)-[:HAS_SOCIAL_MATCH]->(s:SocialMatch {source_id:a.id, target_id:node.id})->[:HAS_SOCIAL_MATCH]-(node)
+        on create set s += {times_updated:1, similarity_metric:0.8, last_updated_by:"ekata", created_on:$now, last_updated:$now}
+      `
+
+      let params = {}
+      params["a_id"] = ambassador.get("id")
+      params["e_first"] = people[i]["firstname"]
+      params["e_last"] = people[i]["lastname"]
+      params["now"] = Date.now()
+      await neode.cypher(query, params)
+    }
+  }
+}
+
 
 module.exports = {
   findByExternalId: findByExternalId,
@@ -519,4 +551,5 @@ module.exports = {
   sendTriplerCountsToHubspot: sendTriplerCountsToHubspot,
   syncAmbassadorToHubSpot: syncAmbassadorToHubSpot,
   updateTrustFactors: updateTrustFactors
+  setEkataBasedSocialMatch:setEkataBasedSocialMatch,
 }

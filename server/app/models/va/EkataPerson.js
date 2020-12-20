@@ -10,4 +10,10 @@ module.exports = {
     type: "string",
     primary: true,
   },
+  first_name: {
+    type: "string",
+  },
+  last_name: {
+    type: "string",
+  },
 }
